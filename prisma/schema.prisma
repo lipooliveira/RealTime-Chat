@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PaymentStatus { pending approved rejected cancelled refunded }
+enum FulfillmentStatus { waiting_payment paid supplier_ordered completed cancelled }
+
+model Product {
+  id String @id @default(cuid())
+  name String
+  description String @default("")
+  category String
+  quantity Int
+  salePrice Int
+  supplierCost Int
+  active Boolean @default(true)
+  sortOrder Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  orders Order[]
+}
+model Order {
+  id String @id @default(cuid())
+  publicId String @unique
+  productId String
+  product Product @relation(fields:[productId], references:[id])
+  productNameSnapshot String
+  instagramUsername String
+  customerName String?
+  customerEmail String
+  amount Int
+  supplierCostSnapshot Int
+  grossProfitSnapshot Int
+  paymentStatus PaymentStatus @default(pending)
+  fulfillmentStatus FulfillmentStatus @default(waiting_payment)
+  mercadoPagoPaymentId String? @unique
+  mercadoPagoReference String? @unique
+  telegramNotifiedAt DateTime?
+  telegramNotificationProcessingAt DateTime?
+  telegramNotificationError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  events PaymentEvent[]
+  @@index([createdAt])
+  @@index([paymentStatus, fulfillmentStatus])
+}
+model PaymentEvent {
+  id String @id @default(cuid())
+  externalId String @unique
+  topic String
+  payload String
+  orderId String?
+  order Order? @relation(fields:[orderId], references:[id])
+  processedAt DateTime @default(now())
+  createdAt DateTime @default(now())
+  @@index([orderId])
+}
+model AppSetting { key String @id; value String; updatedAt DateTime @updatedAt }
